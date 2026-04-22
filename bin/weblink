@@ -2,12 +2,14 @@
 # weblink
 
 # 20260304
-# 0.7.0
+# 0.8.0
 
-# Changes since 0.6:
-# -/0: Optionally derive the format from the extension given by the output filename.
-# 1. + format_from_output()
-# 2. ~ format(): Use output format as second to the explicit format given with the --format switch.
+# Changes since 0.7:
+# -/0: Add WebLink facade class.
+# 1. + WebLink with #to_desktop, #to_url, #to_webloc.
+# 2. - FORMAT_CLASSES.
+# 3. - format_class().
+# 4. ~ main(): Use WebLink with send("to_#{format}").
 
 require 'rbconfig'
 require 'switches.rb'
@@ -79,7 +81,27 @@ class DotWebloc
   end
 end
 
-FORMAT_CLASSES = [DotDesktop, DotUrl, DotWebloc]
+class WebLink
+  attr_accessor :url
+
+  def to_desktop
+    DotDesktop.new(@url)
+  end
+
+  def to_url
+    DotUrl.new(@url)
+  end
+
+  def to_webloc
+    DotWebloc.new(@url)
+  end
+
+  private
+
+  def initialize(url)
+    @url = url
+  end
+end
 
 def switches
   @switches ||= (
@@ -127,15 +149,12 @@ def format
   supplied_format || format_from_output || default_format
 end
 
-def format_class
-  FORMAT_CLASSES.detect{|klass| klass.extension == format}
-end
-
 def main
+  web_link = WebLink.new(url).send("to_#{format}")
   if switches.output
-    File.write(output, format_class.new(url).generate)
+    File.write(output, web_link.generate)
   else
-    puts format_class.new(url).generate
+    puts web_link.generate
   end
 end
 
