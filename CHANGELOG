@@ -1,5 +1,14 @@
 # CHANGELOG
 
+0.8.0 - 20260304
+
+Add WebLink facade class.
+
+  1. + WebLink with #to_desktop, #to_url, #to_webloc.
+  2. - FORMAT_CLASSES.
+  3. - format_class().
+  4. ~ main(): Use WebLink with send("to_#{format}").
+
 0.7.0 - 20260304
 
 Optionally derive the format from the extension given by the output filename.
