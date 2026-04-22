@@ -2,21 +2,58 @@
 # weblink
 
 # 20260304
-# 0.8.0
+# 0.9.0
 
-# Changes since 0.7:
-# -/0: Add WebLink facade class.
-# 1. + WebLink with #to_desktop, #to_url, #to_webloc.
-# 2. - FORMAT_CLASSES.
-# 3. - format_class().
-# 4. ~ main(): Use WebLink with send("to_#{format}").
+# Changes since 0.8:
+# -/0: Add parsing, conversion, and sub-commands. Refactor stdin handling for implicit command detection.
+# 1. + require 'rexml/document'.
+# 2. ~ DotDesktop: + .load, .parse
+# 3. ~ DotUrl: + .load, .parse
+# 4. ~ DotWebloc: + .load, .parse
+# 5. ~ WebLink: + .load, .parse
+# 6. + WebLink::FORMAT_CLASSES
+# 7. + command_from_argv()
+# 8. + command_from_stdin()
+# 9. + command()
+# 10. + command_present?()
+# 11. + stdin_content(): Refactor stdin reading into memoized method.
+# 12. + generate()
+# 13. + convert()
+# 14. /url/url_or_path/
+# 15. ~ main(): Dispatch on full or abbreviated commands.
+# 16. + GENERATE_COMMAND_PATTERN, CONVERT_COMMAND_PATTERN
+
+# Usage:
+#   weblink <url>                             # generate, platform format, stdout
+#   weblink <url> -f url                      # generate, explicit format, stdout
+#   weblink <url> -o example.webloc           # generate, format from extension, file
+#   weblink g <url>                           # generate, explicit sub-command
+#   weblink example.webloc -f desktop         # convert, explicit format
+#   weblink c example.webloc -f url           # convert, explicit sub-command
+#   cat example.txt | weblink                 # generate from stdin which contains a URL, implicit sub-command
+#   cat example.webloc | weblink              # convert from stdin, platform format
+#   cat example.webloc | weblink -f url       # convert from stdin, explicit format
+#   echo "https://example.com" | weblink      # generate from stdin, platform format, stdout
+#   echo "https://example.com" | weblink g    # generate from stdin, explicit sub-command
 
 require 'rbconfig'
+require 'rexml/document'
 require 'switches.rb'
 
 class DotDesktop
   def self.extension
     'desktop'
+  end
+
+  def self.load(path)
+    parse(File.read(path))
+  end
+
+  def self.parse(content)
+    content.each_line do |line|
+      return WebLink.new($1) if line =~ /\AURL=(.+)/
+    end
+    nil
   end
 
   def generate
@@ -41,6 +78,17 @@ class DotUrl
     'url'
   end
 
+  def self.load(path)
+    parse(File.read(path))
+  end
+
+  def self.parse(content)
+    content.each_line do |line|
+      return WebLink.new($1) if line =~ /\AURL=(.+)/
+    end
+    nil
+  end
+
   def generate
     <<~INI
       [InternetShortcut]
@@ -59,6 +107,24 @@ end
 class DotWebloc
   def self.extension
     'webloc'
+  end
+
+  def self.load(path)
+    parse(File.read(path))
+  end
+
+  def self.parse(content)
+    doc = REXML::Document.new(content)
+    found_key = false
+    doc.elements.each('plist/dict/*') do |e|
+      if found_key
+        return WebLink.new(e.text)
+      end
+      found_key = true if e.name == 'key' && e.text == 'URL'
+    end
+    nil
+  rescue REXML::ParseException
+    nil
   end
 
   def generate
@@ -82,6 +148,18 @@ class DotWebloc
 end
 
 class WebLink
+  FORMAT_CLASSES = [DotDesktop, DotUrl, DotWebloc]
+
+  def self.load(path)
+    file_ext = File.extname(path).delete_prefix('.')
+    parse(File.read(path), format: file_ext)
+  end
+
+  def self.parse(content, format:)
+    klass = FORMAT_CLASSES.detect{|format_klass| format_klass.extension == format}
+    klass&.parse(content)
+  end
+
   attr_accessor :url
 
   def to_desktop
@@ -103,6 +181,9 @@ class WebLink
   end
 end
 
+GENERATE_COMMAND_PATTERN = /^g(en(erate)?)?$/
+CONVERT_COMMAND_PATTERN = /^c(onv(ert)?)?$/
+
 def switches
   @switches ||= (
     Switches.new do |s|
@@ -112,12 +193,66 @@ def switches
   )
 end
 
-def url
-  @url ||= (
-    if ARGV[0]
+def command_from_argv
+  @command ||= (
+    if command_present?
       ARGV[0]
-    elsif !$stdin.tty?
-      $stdin.read.chomp
+    elsif ARGV[0] && File.exist?(ARGV[0])
+      'convert'
+    else
+      'generate'
+    end
+  )
+end
+
+def weblink_from_stdin
+  @weblink_from_stdin ||= (
+    result = nil
+    WebLink::FORMAT_CLASSES.each do |klass|
+      result = klass.parse(stdin_content)
+      break if result
+    end
+    result
+  )
+end
+
+def command_from_stdin
+  if command_present?
+    ARGV[0]
+  else
+    weblink_from_stdin ? 'convert' : 'generate'
+  end
+end
+
+def command
+  @command ||= (
+    if $stdin.tty?
+      command_from_argv
+    else
+      command_from_stdin
+    end
+  )
+end
+
+def command_present?
+  ARGV[0] && (
+    ARGV[0].match?(GENERATE_COMMAND_PATTERN) ||
+      ARGV[0].match?(CONVERT_COMMAND_PATTERN)
+  )
+end
+
+def stdin_content
+  @stdin_content ||= (
+    $stdin.read.chomp unless $stdin.tty?
+  )
+end
+
+def url_or_path
+  @url_or_path ||= (
+    if $stdin.tty?
+      command_present? ? ARGV[1] : ARGV[0]
+    else
+      stdin_content
     end
   )
 end
@@ -149,8 +284,12 @@ def format
   supplied_format || format_from_output || default_format
 end
 
-def main
-  web_link = WebLink.new(url).send("to_#{format}")
+def generate
+  input = url_or_path
+  if File.exist?(input)
+    input = File.read(input)
+  end
+  web_link = WebLink.new(input).send("to_#{format}")
   if switches.output
     File.write(output, web_link.generate)
   else
@@ -158,4 +297,34 @@ def main
   end
 end
 
-main
+def convert
+  if $stdin.tty?
+    unless File.exist?(url_or_path)
+      $stderr.puts "File not found: #{url_or_path}"
+      exit 1
+    end
+    web_link = WebLink.load(url_or_path)
+  else
+    web_link = weblink_from_stdin
+    unless web_link
+      $stderr.puts "Could not parse input"
+      exit 1
+    end
+  end
+  dot_file = web_link.send("to_#{format}")
+  if switches.output
+    File.write(output, dot_file.generate)
+  else
+    puts dot_file.generate
+  end
+end
+
+def main
+  case command
+  when GENERATE_COMMAND_PATTERN; generate
+  when CONVERT_COMMAND_PATTERN; convert
+  else; generate
+  end
+end
+
+main if __FILE__ == $0

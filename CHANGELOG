@@ -1,5 +1,26 @@
 # CHANGELOG
 
+0.9.0 - 20260304
+
+Add parsing, conversion, and sub-commands. Refactor stdin handling for implicit command detection.
+
+  1. + require 'rexml/document'.
+  2. ~ DotDesktop: + .load, .parse
+  3. ~ DotUrl: + .load, .parse
+  4. ~ DotWebloc: + .load, .parse
+  5. ~ WebLink: + .load, .parse
+  6. + WebLink::FORMAT_CLASSES
+  7. + command_from_argv()
+  8. + command_from_stdin()
+  9. + command()
+  10. + command_present?()
+  11. + stdin_content(): Refactor stdin reading into memoized method.
+  12. + generate()
+  13. + convert()
+  14. /url/url_or_path/
+  15. ~ main(): Dispatch on full or abbreviated commands.
+  16. + GENERATE_COMMAND_PATTERN, CONVERT_COMMAND_PATTERN
+
 0.8.0 - 20260304
 
 Add WebLink facade class.
