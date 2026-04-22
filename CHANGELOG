@@ -1,5 +1,12 @@
 # CHANGELOG
 
+0.1.0 - 20260304
+
+Use a heredoc template instead of the builder gem.
+
+  1. ~ Webloc#to_xml: Use heredoc.
+  2. public -> private Webloc#initialize
+
 0.0.0 - 20200929
 
 (Initial version)
