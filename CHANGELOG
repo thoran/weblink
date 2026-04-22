@@ -1,5 +1,18 @@
 # CHANGELOG
 
+0.2.0 - 20260304
+
+/weblocator/weblink/ as is now a generic (non-webloc-specific) tool
+
+  1. /Webloc/DotWebloc/
+  2. + DotWebloc: /#to_xml/#generate/
+  3. + DotDesktop
+  4. + DotUrl
+  5. + native_extension()
+  6. + require 'rbconfig'
+  7. + url()
+  8. ~ main(): Check for a native extension based on OS.
+
 0.1.0 - 20260304
 
 Use a heredoc template instead of the builder gem.
