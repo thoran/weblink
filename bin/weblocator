@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+# weblocator
+
+# 20200929
+# 0.0.0
+
+require 'builder'
+
+class Webloc
+  def initialize(url)
+    @url = url
+  end
+
+  def to_xml
+    xml = Builder::XmlMarkup.new(indent: 2)
+    xml.instruct! :xml, encoding: 'ASCII'
+    xml.plist(version: '1.0') do
+      xml.dict do |dict|
+        dict.key 'URL'
+        dict.string @url
+      end
+    end
+  end
+end
+
+def main
+  puts Webloc.new(ARGV[0]).to_xml
+end
+
+main
