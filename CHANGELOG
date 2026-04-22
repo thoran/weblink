@@ -1,5 +1,11 @@
 # CHANGELOG
 
+0.4.0 - 20260304
+
+Accept STDIN as well as ARGV.
+
+  1. ~ url(): Accept STDIN as well as ARGV.
+
 0.3.0 - 20260304
 
 Use dynamic dispatch based on extension detection.

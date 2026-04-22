@@ -2,13 +2,11 @@
 # weblink
 
 # 20260304
-# 0.3.0
+# 0.4.0
 
-# Changes since 0.2:
-# -/0: Use dynamic dispatch based on extension detection.
-# 1. + FORMAT_CLASSES
-# 2. + format_class()
-# 3. ~ main(): Use format_class().
+# Changes since 0.3:
+# -/0: Accept STDIN as well as ARGV.
+# 1. ~ url(): Accept STDIN as well as ARGV.
 
 require 'rbconfig'
 
@@ -82,7 +80,13 @@ end
 FORMAT_CLASSES = [DotDesktop, DotUrl, DotWebloc]
 
 def url
-  ARGV[0]
+  @url ||= (
+    if ARGV[0]
+      ARGV[0]
+    elsif !$stdin.tty?
+      $stdin.read.chomp
+    end
+  )
 end
 
 def native_extension
