@@ -1,5 +1,16 @@
 # CHANGELOG
 
+0.5.0 - 20260304
+
+Add --format switch to override platform default.
+
+  1. + require 'switches.rb'
+  2. + switches()
+  3. + supplied_format()
+  4. /native_extension/default_format/
+  5. + format()
+  6. ~ format_class(): Use format() instead of native_extension().
+
 0.4.0 - 20260304
 
 Accept STDIN as well as ARGV.
