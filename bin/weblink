@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+# weblink
+
+# 20260304
+# 0.2.0
+
+# Changes since 0.1:
+# -/0: /weblocator/weblink/ as is now a generic (non-webloc-specific) tool
+# 1. /Webloc/DotWebloc/
+# 2. + DotWebloc: /#to_xml/#generate/
+# 3. + DotDesktop
+# 4. + DotUrl
+# 5. + native_extension()
+# 6. + require 'rbconfig'
+# 7. + url()
+# 8. ~ main(): Check for a native extension based on OS.
+
+require 'rbconfig'
+
+class DotDesktop
+  def self.extension
+    'desktop'
+  end
+
+  def generate
+    <<~DESKTOP
+      [Desktop Entry]
+      Type=Link
+      Name=#{@url}
+      URL=#{@url}
+      Icon=text-html
+    DESKTOP
+  end
+
+  private
+
+  def initialize(url)
+    @url = url
+  end
+end
+
+class DotUrl
+  def self.extension
+    'url'
+  end
+
+  def generate
+    <<~INI
+      [InternetShortcut]
+      URL=#{@url}
+      IconIndex=0
+    INI
+  end
+
+  private
+
+  def initialize(url)
+    @url = url
+  end
+end
+
+class DotWebloc
+ def self.extension
+    'webloc'
+  end
+
+  def generate
+    <<~XML
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>URL</key>
+        <string>#{@url}</string>
+      </dict>
+      </plist>
+    XML
+  end
+
+  private
+
+  def initialize(url)
+    @url = url
+  end
+end
+
+def native_extension
+  case RbConfig::CONFIG['host_os']
+  when /darwin/i; 'webloc'
+  when /mswin|mingw|cygwin/i; 'url'
+  when /linux|bsd/i; 'desktop'
+  else; 'url'
+  end
+end
+
+def url
+  ARGV[0]
+end
+
+def main
+  case native_extension
+  when DotDesktop.extension
+    puts DotDesktop.new(url).generate
+  when DotUrl.extension
+    puts DotUrl.new(url).generate
+  when DotWebloc.extension
+    puts DotWebloc.new(url).generate
+  end
+end
+
+main
