@@ -1,5 +1,14 @@
 # CHANGELOG
 
+0.10.0 - 20260422
+
+Automatic switches.rb gem installation. Add a README.
+
+  1. + Thoran::Kernel::RequireGem
+  2. /require 'switches.rb'/require_gem 'switches.rb'/
+  3. + README.md
+  4. ~ bin/weblink: - Changes comments.
+
 0.9.0 - 20260304
 
 Add parsing, conversion, and sub-commands. Refactor stdin handling for implicit command detection.
