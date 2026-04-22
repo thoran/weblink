@@ -2,16 +2,13 @@
 # weblink
 
 # 20260304
-# 0.5.0
+# 0.6.0
 
-# Changes since 0.4:
-# -/0: Add --format switch to override platform default.
-# 1. + require 'switches.rb'
-# 2. + switches()
-# 3. + supplied_format()
-# 4. /native_extension/default_format/
-# 5. + format()
-# 6. ~ format_class(): Use format() instead of native_extension().
+# Changes since 0.5:
+# -/0: Add --output switch for writing to file.
+# 1. ~ switches(): + :o, :output
+# 2. + output()
+# 3. ~ main(): Write to file when --output supplied, stdout otherwise.
 
 require 'rbconfig'
 require 'switches.rb'
@@ -89,6 +86,7 @@ def switches
   @switches ||= (
     Switches.new do |s|
       s.set(:f, :format)
+      s.set(:o, :output)
     end
   )
 end
@@ -101,6 +99,10 @@ def url
       $stdin.read.chomp
     end
   )
+end
+
+def output
+  switches.output
 end
 
 def supplied_format
@@ -125,7 +127,11 @@ def format_class
 end
 
 def main
-  puts format_class.new(url).generate
+  if switches.output
+    File.write(output, format_class.new(url).generate)
+  else
+    puts format_class.new(url).generate
+  end
 end
 
 main
