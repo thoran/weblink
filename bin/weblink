@@ -2,18 +2,13 @@
 # weblink
 
 # 20260304
-# 0.2.0
+# 0.3.0
 
-# Changes since 0.1:
-# -/0: /weblocator/weblink/ as is now a generic (non-webloc-specific) tool
-# 1. /Webloc/DotWebloc/
-# 2. + DotWebloc: /#to_xml/#generate/
-# 3. + DotDesktop
-# 4. + DotUrl
-# 5. + native_extension()
-# 6. + require 'rbconfig'
-# 7. + url()
-# 8. ~ main(): Check for a native extension based on OS.
+# Changes since 0.2:
+# -/0: Use dynamic dispatch based on extension detection.
+# 1. + FORMAT_CLASSES
+# 2. + format_class()
+# 3. ~ main(): Use format_class().
 
 require 'rbconfig'
 
@@ -60,7 +55,7 @@ class DotUrl
 end
 
 class DotWebloc
- def self.extension
+  def self.extension
     'webloc'
   end
 
@@ -84,6 +79,12 @@ class DotWebloc
   end
 end
 
+FORMAT_CLASSES = [DotDesktop, DotUrl, DotWebloc]
+
+def url
+  ARGV[0]
+end
+
 def native_extension
   case RbConfig::CONFIG['host_os']
   when /darwin/i; 'webloc'
@@ -93,19 +94,12 @@ def native_extension
   end
 end
 
-def url
-  ARGV[0]
+def format_class
+  FORMAT_CLASSES.detect{|klass| klass.extension == native_extension}
 end
 
 def main
-  case native_extension
-  when DotDesktop.extension
-    puts DotDesktop.new(url).generate
-  when DotUrl.extension
-    puts DotUrl.new(url).generate
-  when DotWebloc.extension
-    puts DotWebloc.new(url).generate
-  end
+  puts format_class.new(url).generate
 end
 
 main
