@@ -135,6 +135,6 @@ web_link.generate
 `weblink` started life as `weblocator`, a `.webloc`-only tool, and was generalised to cover all three formats. See the `CHANGELOG` for details.
 
 
-## Licence
+## License
 
 MIT
